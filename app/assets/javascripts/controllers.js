@@ -18,9 +18,7 @@ angular.module('sseChat.controllers', ['sseChat.services']).
         };
 
         /** handle incoming messages: add to messages array */
-        $scope.addMsg = function (msg) { 
-            $scope.$apply(function () { $scope.msgs.push(JSON.parse(msg.data)); });
-        };
+        $scope.addMsg = function (msg) { $scope.$apply(function () { $scope.msgs.push(JSON.parse(msg.data)); }); };
 
         /** start listening on messages from selected room */
         $scope.listen = function () {

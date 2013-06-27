@@ -1,12 +1,11 @@
 body {
     font-family: helvetica;
     color: #333;
-    padding-left: 25px;
     background: #CCC;
 }
 
 #chat {
-    min-height: 200px;
+    min-height: 150px;
     right: 10px;
     left: 30px;
     background: #AAA;

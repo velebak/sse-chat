@@ -11,6 +11,7 @@ import scala.concurrent.duration._
 import controllers.ChatApplication
 import org.joda.time.DateTime
 import scala.util.Random
+import akka.actor.SupervisorStrategy.{Stop, Resume, Restart}
 
 object ChatActors {
   
@@ -18,14 +19,16 @@ object ChatActors {
   val system = ActorSystem("sse-chat")
 
   /** Supervisor for Romeo and Juliet */
-  val wsClientSupervisor = system.actorOf(Props(new Supervisor(system.eventStream)), "ChatterSupervisor")
+  val supervisor = system.actorOf(Props(new Supervisor()), "ChatterSupervisor")
 
   case object Talk
 }
 
 /** Supervisor initiating Romeo and Juliet actors and scheduling their talking */
-class Supervisor(eventStream: akka.event.EventStream) extends Actor {
-
+class Supervisor() extends Actor {
+  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1.minute) {
+    case _: Exception => Stop
+  }
   val juliet = context.actorOf(Props(new Chatter("Juliet", Quotes.juliet)))
   context.system.scheduler.schedule(1 seconds, 10 seconds, juliet, ChatActors.Talk)
   
@@ -36,7 +39,11 @@ class Supervisor(eventStream: akka.event.EventStream) extends Actor {
 }
 
 /** Chat participant actors picking quotes at random when told to talk */
-class Chatter(name: String, quotes: Seq[String]) extends Actor {
+class Chatter(name: String, quotes: Seq[String]) extends Actor with ActorLogging {
+
+  override def preRestart(reason: Throwable, message: Option[Any]) {
+    log.error(reason, "Restarting due to [{}] when processing [{}]", reason.getMessage, message.getOrElse(""))
+  }
   
   def receive = {
     case ChatActors.Talk  => {

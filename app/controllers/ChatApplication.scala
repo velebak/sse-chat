@@ -23,7 +23,7 @@ object ChatApplication extends Controller {
 
   /** Enumeratee for filtering messages based on IP address (in demo messages only delivered to sender) */
   def ipFilter(remoteAddress: String) = Enumeratee.filter[Message] { 
-    msg => msg.remoteAddress == remoteAddress || msg.remoteAddress == "actors"
+    msg => msg.remoteAddress == remoteAddress || msg.remoteAddress == "Romeo" || msg.remoteAddress == "Juliet"
   }
 
   /** map Message case class to JsValue */
@@ -31,9 +31,13 @@ object ChatApplication extends Controller {
 
   /** Controller action serving activity based on room */
   def chatFeed(room: String) = Action { 
-    req => Ok.stream(chatOut &> roomFilter(room) 
-      &> ipFilter(req.remoteAddress)
-      &> toJsValue
-      &> EventSource()).as("text/event-stream") }
+    req => {
+      Ok.stream(chatOut &> roomFilter(room)
+        &> ipFilter(req.remoteAddress)
+        &> toJsValue
+        &> Concurrent.buffer(20)
+        &> EventSource()).as("text/event-stream")
+    } 
+  }
 
 }

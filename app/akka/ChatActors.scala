@@ -12,6 +12,7 @@ import controllers.ChatApplication
 import org.joda.time.DateTime
 import scala.util.Random
 import controllers.ChatApplication.Message
+import akka.actor.SupervisorStrategy.Restart
 
 object ChatActors {
   
@@ -27,6 +28,10 @@ object ChatActors {
 /** Supervisor initiating Romeo and Juliet actors and scheduling their talking */
 class Supervisor() extends Actor {
 
+  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1.minute) {
+    case _: Exception => Restart
+  }
+
   val juliet = context.actorOf(Props(new Chatter("Juliet", Quotes.juliet)))
   context.system.scheduler.schedule(1 seconds, 10 seconds, juliet, ChatActors.Talk)
   
@@ -37,7 +42,14 @@ class Supervisor() extends Actor {
 }
 
 /** Chat participant actors picking quotes at random when told to talk */
-class Chatter(name: String, quotes: Seq[String]) extends Actor {
+class Chatter(name: String, quotes: Seq[String]) extends Actor with ActorLogging {
+
+  override def preRestart(reason: Throwable, message: Option[Any]) {
+    log.error(reason, "Restarting due to [{}] when processing [{}]", reason.getMessage, message.getOrElse(""))
+  }
+  override def preStart() = log.info(name + " prestart")
+  override def postStop() = log.info(name + " poststop")
+  
   
   def receive = {
     case ChatActors.Talk  => {
@@ -45,7 +57,7 @@ class Chatter(name: String, quotes: Seq[String]) extends Actor {
       val quote = quotes(Random.nextInt(quotes.size))
       val msg = Json.obj("room" -> "room1", "text" -> quote, "user" ->  name, "time" -> now )
 
-      ChatApplication.chatChannel.push(Message(msg, "actors"))
+      ChatApplication.chatChannel.push(Message(msg, name))
     }
   }
 } 

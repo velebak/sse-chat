@@ -11,6 +11,7 @@ import scala.concurrent.duration._
 import controllers.ChatApplication
 import org.joda.time.DateTime
 import scala.util.Random
+import controllers.ChatApplication.Message
 
 object ChatActors {
   
@@ -44,7 +45,7 @@ class Chatter(name: String, quotes: Seq[String]) extends Actor {
       val quote = quotes(Random.nextInt(quotes.size))
       val msg = Json.obj("room" -> "room1", "text" -> quote, "user" ->  name, "time" -> now )
 
-      ChatApplication.chatChannel.push(msg)
+      ChatApplication.chatChannel.push(Message(msg, "actors"))
     }
   }
 } 
